@@ -13,5 +13,5 @@ mosi----lv1         hv1--------din
 esp32:
 mosi    = 23
 cs      = 05
-sck/clk = 19
+sck/clk = 18
 ```
