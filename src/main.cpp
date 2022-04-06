@@ -20,6 +20,9 @@ AsyncWebServer server(80);
 // https://registry.platformio.org/libraries/majicdesigns/MD_MAX72XX
 // https://registry.platformio.org/libraries/majicdesigns/MD_Parola
 MD_Parola led_marquee = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
+
+// Make sure that we're only controlling and updating the led marquee in the loop() function,
+// so communicate through variables if the text needs to be updated.
 String led_marquee_text = "scrolling text";
 bool led_marquee_text_changed = true;
 
@@ -36,10 +39,20 @@ String config_html = "<!DOCTYPE html>"
                      "</body>"
                      "</html>";
 
+/**
+ * Function to handle any 404 response
+ * 
+ * @param AsyncWebServerRequest *request
+ */
 void handleNotFound(AsyncWebServerRequest *request) {
   request->send(404, "text/plain", "Not Found");
 }
 
+/**
+ * Function to the configuration page post requests
+ * 
+ * @param AsyncWebServerRequest *request
+ */
 void handleConfigPostRequest(AsyncWebServerRequest *request) {
   int headers = request->headers();
   for(int i=0;i<headers;i++){
@@ -52,14 +65,22 @@ void handleConfigPostRequest(AsyncWebServerRequest *request) {
 
     Serial.printf("Received data: %s\n", p_data->value().c_str());
 
+    // Set the new text
     led_marquee_text = p_data->value();
+    // Set the boolean marking that the text that needs to be displayed has changed to true
     led_marquee_text_changed = true;
   }
 
   request->send(200, "text/html", config_html);
 }
 
+/**
+ * Setup the web server routing:
+ * / root for the configuration page
+ * any other path should respond with a 404
+ */
 void setupWebServerRouting() {
+  // Setup the root get handler
   server.on(
     "/",
     HTTP_GET,
@@ -67,6 +88,7 @@ void setupWebServerRouting() {
       request->send(200, "text/html", config_html);
     }
   );
+  // Setup the root post handler
   server.on(
     "/",
     HTTP_POST,
@@ -82,6 +104,7 @@ void setup() {
   delay(10);
   Serial.println('\n');
   
+  // Handle WiFi setup
   WiFi.begin(ssid, password);             
   while (WiFi.status() != WL_CONNECTED) 
   { 
@@ -97,12 +120,16 @@ void setup() {
   
   // Start web server
   server.begin();
-
+  
+  // Handle led matrix setup
   led_marquee.begin();
   led_marquee.setIntensity(0);
   led_marquee.displayClear();
 }
 
+/**
+ * The main loop handles updating the led matrix, and changes the text when needed.
+ */
 void loop() {
   if (led_marquee_text_changed) {
     led_marquee_text_changed = false;
