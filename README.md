@@ -4,11 +4,11 @@
 ```
 esp32   level convertor   5v   max7219
 --------------------------|-----------
-3v3-----lv           hv---+----vcc
-gnd-----gnd         gnd--------gnd
+ 3v3----lv           hv---+----vcc
+ gnd----gnd         gnd--------gnd
 mosi----lv1         hv1--------din
-cs------lv2         hv2--------cs
-clk-----lv3         hv3--------clk
+  cs----lv2         hv2--------cs
+ clk----lv3         hv3--------clk
 
 esp32:
 mosi    = 23
