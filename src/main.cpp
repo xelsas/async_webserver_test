@@ -11,8 +11,8 @@
 #define CS_PIN 5
 
 // WiFi credentials
-const char* ssid     = "";
-const char* password = "";
+String ssid     = "";
+String password = "";
 const char* ap_ssid     = "ESP32";
 const char* ap_password = "1234567890";
 
@@ -69,8 +69,8 @@ void handleWiFiConfigPostRequest(AsyncWebServerRequest *request) {
 
     Serial.printf("Received SSID: %s\n", p_ssid->value().c_str());
 
-    ssid     = p_ssid->value().c_str();
-    password = p_password->value().c_str();
+    ssid     = p_ssid->value();
+    password = p_password->value();
     
     restart_wifi = true;
   }
@@ -153,11 +153,11 @@ void setupWebServerRouting() {
  * Default AP ip is 192.168.4.1
  */
 void setupWiFi() {
-  WiFi.disconnect();
-  WiFi.softAPdisconnect();
+  WiFi.disconnect(true);
+  WiFi.softAPdisconnect(true);
   
   int count = 0;
-  WiFi.begin(ssid, password);             
+  WiFi.begin(ssid.c_str(), password.c_str());
   while (WiFi.status() != WL_CONNECTED && count < 20) { 
     delay(500);
     Serial.print('.');
