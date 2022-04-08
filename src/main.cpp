@@ -17,6 +17,7 @@ const char* ap_ssid     = "ESP32";
 const char* ap_password = "1234567890";
 
 bool restart_wifi = false;
+bool auto_reconnect_wifi = false;
 
 String wifi_config_html = "<!DOCTYPE html>"
                      "<html>"
@@ -148,33 +149,68 @@ void setupWebServerRouting() {
 }
 
 /**
+ * @param event
+ * @param info
+ */
+void handleEventStaConnected(WiFiEvent_t event, WiFiEventInfo_t info){
+  Serial.println("Connected with AP.");
+}
+
+/**
+ * @param event
+ * @param info
+ */
+void handleEventStaGotIp(WiFiEvent_t event, WiFiEventInfo_t info){
+  Serial.print("Connected with IP address: ");
+  Serial.print(WiFi.localIP());
+  Serial.print('\n');
+  auto_reconnect_wifi = true;
+}
+
+/**
+ * @param event
+ * @param info
+ */
+void handleEventStaDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
+  Serial.print("WiFi connection lost: ");
+  Serial.print(info.disconnected.reason);
+  Serial.print('\n');
+
+  if (auto_reconnect_wifi) {
+    Serial.println("Attempting reconnect.");
+    WiFi.begin(ssid.c_str(), password.c_str());
+  } else {
+    Serial.println("Reconnect not allowed.");
+  }
+}
+
+/**
  * Handle WiFi setup, try to connect and fall back to starting as access point.
  * 
  * Default AP ip is 192.168.4.1
  */
 void setupWiFi() {
-  WiFi.disconnect(true);
+  // Prevent automatic reconnection
+  auto_reconnect_wifi = false;
+  // Disconnect if connected
+  WiFi.disconnect(true, true);
   WiFi.softAPdisconnect(true);
   
   int count = 0;
   WiFi.begin(ssid.c_str(), password.c_str());
+  Serial.println("Setting up WiFi");
   while (WiFi.status() != WL_CONNECTED && count < 20) { 
     delay(500);
-    Serial.print('.');
     count++;
   }
 
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("Configuring access point.");
+    WiFi.disconnect(true, true);
+    Serial.println("WiFi setup failed, starting as access point.");
     WiFi.softAP(ap_ssid, ap_password);
 
     return;
   }
-  
-  Serial.println('\n');
-  Serial.println("Connected with IP address:\t");
-  Serial.println(WiFi.localIP());
-  Serial.println('\n');
 }
 
 /**
@@ -185,6 +221,10 @@ void setup() {
   delay(10);
   Serial.println('\n');
 
+  // Register WiFi events
+  WiFi.onEvent(handleEventStaConnected, SYSTEM_EVENT_STA_CONNECTED);
+  WiFi.onEvent(handleEventStaGotIp, SYSTEM_EVENT_STA_GOT_IP);
+  WiFi.onEvent(handleEventStaDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
   setupWiFi();
 
   setupWebServerRouting();
