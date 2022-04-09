@@ -1,10 +1,9 @@
 #include <Arduino.h>
 #include <WiFi.h>
-#include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <MD_MAX72xx.h>
 #include <MD_Parola.h>
-#include <SPI.h>
+#include <DNSServer.h>
 
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW
 #define MAX_DEVICES 8
@@ -13,11 +12,15 @@
 // WiFi credentials
 String ssid     = "";
 String password = "";
+
+IPAddress ap_ip(192, 168, 1, 1);
+const byte dns_port = 53;
 const char* ap_ssid     = "ESP32";
 const char* ap_password = "1234567890";
 
 bool restart_wifi = false;
 bool auto_reconnect_wifi = false;
+bool handle_dns_requests = false;
 
 String wifi_config_html = "<!DOCTYPE html>"
                      "<html>"
@@ -46,6 +49,8 @@ String config_html = "<!DOCTYPE html>"
                      "</body>"
                      "</html>";
 
+DNSServer dns_server;
+
 // WebServer https://github.com/me-no-dev/ESPAsyncWebServer
 AsyncWebServer server(80);
 
@@ -57,27 +62,6 @@ MD_Parola led_marquee = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 // so communicate through variables if the text needs to be updated.
 String led_marquee_text = "scrolling text";
 bool led_marquee_text_changed = true;
-
-/**
- * Function to handle the wifi configuration page post requests
- * 
- * @param AsyncWebServerRequest *request
- */
-void handleWiFiConfigPostRequest(AsyncWebServerRequest *request) {
-  if (request->hasParam("ssid", true, false) && request->hasParam("password", true, false)) {
-    AsyncWebParameter* p_ssid = request->getParam("ssid", true, false);
-    AsyncWebParameter* p_password = request->getParam("password", true, false);
-
-    Serial.printf("Received SSID: %s\n", p_ssid->value().c_str());
-
-    ssid     = p_ssid->value();
-    password = p_password->value();
-    
-    restart_wifi = true;
-  }
-
-  request->send(200, "text/html", config_html);
-}
 
 /**
  * Function to handle any 404 response
@@ -103,6 +87,27 @@ void handleConfigPostRequest(AsyncWebServerRequest *request) {
     led_marquee_text = p_data->value();
     // Set the boolean marking that the text that needs to be displayed has changed to true
     led_marquee_text_changed = true;
+  }
+
+  request->send(200, "text/html", config_html);
+}
+
+/**
+ * Function to handle the wifi configuration page post requests
+ * 
+ * @param AsyncWebServerRequest *request
+ */
+void handleWiFiConfigPostRequest(AsyncWebServerRequest *request) {
+  if (request->hasParam("ssid", true, false) && request->hasParam("password", true, false)) {
+    AsyncWebParameter* p_ssid = request->getParam("ssid", true, false);
+    AsyncWebParameter* p_password = request->getParam("password", true, false);
+
+    Serial.printf("Received SSID: %s\n", p_ssid->value().c_str());
+
+    ssid     = p_ssid->value();
+    password = p_password->value();
+    
+    restart_wifi = true;
   }
 
   request->send(200, "text/html", config_html);
@@ -186,28 +191,36 @@ void handleEventStaDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
 
 /**
  * Handle WiFi setup, try to connect and fall back to starting as access point.
- * 
- * Default AP ip is 192.168.4.1
  */
 void setupWiFi() {
   // Prevent automatic reconnection
   auto_reconnect_wifi = false;
-  // Disconnect if connected
+  // Stop DNS requests from being handled
+  handle_dns_requests = false;
+  // Disconnect if connected, and stop the dns server
+  dns_server.stop();
   WiFi.disconnect(true, true);
   WiFi.softAPdisconnect(true);
+  WiFi.mode(WIFI_OFF);
   
-  int count = 0;
-  WiFi.begin(ssid.c_str(), password.c_str());
-  Serial.println("Setting up WiFi");
-  while (WiFi.status() != WL_CONNECTED && count < 20) { 
-    delay(500);
-    count++;
+  if (ssid.length()) {
+    int count = 0;
+    WiFi.begin(ssid.c_str(), password.c_str());
+    Serial.println("Setting up WiFi");
+    while (WiFi.status() != WL_CONNECTED && count < 20) { 
+      delay(500);
+      count++;
+    }
   }
 
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.disconnect(true, true);
-    Serial.println("WiFi setup failed, starting as access point.");
+    Serial.println("WiFi setup failed, starting as captive portal access point.");
+    WiFi.softAPConfig(ap_ip, ap_ip, IPAddress(255, 255, 255, 0));
     WiFi.softAP(ap_ssid, ap_password);
+
+    dns_server.start(dns_port, "*", ap_ip);
+    handle_dns_requests = true;
 
     return;
   }
@@ -242,13 +255,16 @@ void setup() {
  * The main loop handles updating the led matrix, and changes the text when needed.
  */
 void loop() {
+  if (handle_dns_requests) {
+    dns_server.processNextRequest();
+  }
+
   if (restart_wifi) {
     restart_wifi = false;
 
     setupWiFi();
   }
   
-
   if (led_marquee_text_changed) {
     led_marquee_text_changed = false;
     led_marquee.displayClear();
