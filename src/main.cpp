@@ -22,30 +22,74 @@ bool restart_wifi = false;
 bool auto_reconnect_wifi = false;
 bool handle_dns_requests = false;
 
-String wifi_config_html = "<!DOCTYPE html>"
-                     "<html>"
-                     "<head>"
-                     "</head>"
-                     "<body>"
-                     " <h1>ESP32 Web Server</h1>"
-                     " <form method='post' action='/wifi'>"
-                     "  <label>SSID<input type='text' name='ssid' value='' /></label><br>"
-                     "  <label>Password<input type='password' name='password' value='' /></label><br>"
-                     "  <input type='submit' value='submit' />"
-                     " </form>"
-                     "</body>"
-                     "</html>";
-
 String config_html = "<!DOCTYPE html>"
                      "<html>"
                      "<head>"
+                     " <style>"
+                     "  .main_content {"
+                     "    box-sizing: content-box;"
+                     "    margin-inline: auto;"
+                     "    max-inline-size: 40rem;"
+                     "    display: flex;"
+                     "    flex-direction: column;"
+                     "    justify-content: flex-start;"
+                     "  }"
+                     "  .main_content h1 {"
+                     "    font-size: 3rem;"
+                     "  }"
+                     "  .main_content > * {"
+                     "    margin-block: 0;"
+                     "  }"
+                     "  .main_content > * + * {"
+                     "    margin-block-start: var(--space, 1.5rem);"
+                     "  }"
+                     "  .main_content_item input {"
+                     "    display: block;"
+                     "    padding: 0.25rem 0.5rem;"
+                     "    width: 100%;"
+                     "    height: 2rem;"
+                     "    font-size: 1rem;"
+                     "    vertical-align: middle;"
+                     "  }"
+                     "  .main_content_item input[type=text], .main_content_item input[type=password] {"
+                     "    border: none;"
+                     "    background: #f1f1f1;"
+                     "  }"
+                     "  .main_content_item input[type=text]:focus, .main_content_item input[type=password]:focus {"
+                     "    background-color: #ddd;"
+                     "    outline: none;"
+                     "  }"
+                     "  .main_content_item .btn {"
+                     "    background-color: #42ebeb;"
+                     "    color: white;"
+                     "    padding: 0.25rem 0.5rem;"
+                     "    border: none;"
+                     "    cursor: pointer;"
+                     "    width: 100%;"
+                     "    opacity: 0.9;"
+                     "  }"
+                     "  .btn:hover {"
+                     "    opacity: 1;"
+                     "  }"
+                     " </style>"
                      "</head>"
                      "<body>"
-                     " <h1>ESP32 Web Server</h1>"
-                     " <form method='post' action='/'>"
-                     "  <input type='text' name='data' value='' /><br>"
-                     "  <input type='submit' value='submit' />"
-                     " </form>"
+                     " <div class=\"main_content\">"
+                     "  <h1>ESP32 Web Server</h1>"
+                     "  <div class=\"main_content_item\">"
+                     "   <form method='post' action='/'>"
+                     "    <label>LED Matrix Text<br><input type='text' name='data' value='' /></label><br>"
+                     "    <input class=\"btn\" type='submit' value='submit' />"
+                     "   </form>"
+                     "  </div>"
+                     "  <div class=\"main_content_item\">"
+                     "   <form method='post' action='/'>"
+                     "    <label>SSID<br><input type='text' name='ssid' value='' /></label><br>"
+                     "    <label>Password<br><input type='password' name='password' value='' /></label><br>"
+                     "    <input class=\"btn\" type='submit' value='submit' />"
+                     "   </form>"
+                     "  </div>"
+                     " </div>"
                      "</body>"
                      "</html>";
 
@@ -89,15 +133,6 @@ void handleConfigPostRequest(AsyncWebServerRequest *request) {
     led_marquee_text_changed = true;
   }
 
-  request->send(200, "text/html", config_html);
-}
-
-/**
- * Function to handle the wifi configuration page post requests
- * 
- * @param AsyncWebServerRequest *request
- */
-void handleWiFiConfigPostRequest(AsyncWebServerRequest *request) {
   if (request->hasParam("ssid", true, false) && request->hasParam("password", true, false)) {
     AsyncWebParameter* p_ssid = request->getParam("ssid", true, false);
     AsyncWebParameter* p_password = request->getParam("password", true, false);
@@ -116,7 +151,6 @@ void handleWiFiConfigPostRequest(AsyncWebServerRequest *request) {
 /**
  * Setup the web server routing:
  * / root for the configuration page
- * /wifi for the wifi configuration page
  * any other path should respond with a 404
  */
 void setupWebServerRouting() {
@@ -133,21 +167,6 @@ void setupWebServerRouting() {
     "/",
     HTTP_POST,
     handleConfigPostRequest
-  );
-
-  // Setup the /wifi get handler
-  server.on(
-    "/wifi",
-    HTTP_GET,
-    [](AsyncWebServerRequest *request){
-      request->send(200, "text/html", wifi_config_html);
-    }
-  );
-  // Setup the /wifi post handler
-  server.on(
-    "/wifi",
-    HTTP_POST,
-    handleWiFiConfigPostRequest
   );
 
   server.onNotFound(handleNotFound);
