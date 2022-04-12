@@ -22,7 +22,7 @@ bool restart_wifi = false;
 bool auto_reconnect_wifi = false;
 bool handle_dns_requests = false;
 
-String config_html = "<!DOCTYPE html>"
+char const* config_html = "<!DOCTYPE html>"
                      "<html>"
                      "<head>"
                      " <style>"
@@ -52,7 +52,8 @@ String config_html = "<!DOCTYPE html>"
                      "  .main_content_item input {"
                      "    display: block;"
                      "    padding: 0.25rem 0.5rem;"
-                     "    width: 100%;"
+                     "    box-sizing: border-box;"
+                     "    width: 100%%;"
                      "    height: 2rem;"
                      "    font-size: 1rem;"
                      "    vertical-align: middle;"
@@ -72,7 +73,7 @@ String config_html = "<!DOCTYPE html>"
                      "    border: none;"
                      "    cursor: pointer;"
                      "    width: 100%;"
-                     "    opacity: 0.8;"
+                     "    opacity: 0.9;"
                      "  }"
                      "  .btn:hover {"
                      "    opacity: 1;"
@@ -85,15 +86,15 @@ String config_html = "<!DOCTYPE html>"
                      "  <div class=\"main_content_item\">"
                      "   <h1>LED Matrix Settings</h1>"
                      "   <form method='post' action='/'>"
-                     "    <label>LED Matrix Text<br><input type='text' name='data' value='' /></label><br>"
+                     "    <label>LED Matrix Text<br><input type='text' name='data' value='%s' /></label><br>"
                      "    <input class=\"btn\" type='submit' value='Submit LED Matrix Settings' />"
                      "   </form>"
                      "  </div>"
                      "  <div class=\"main_content_item\">"
                      "   <h1>WiFi Settings</h1>"
                      "   <form method='post' action='/'>"
-                     "    <label>SSID<br><input type='text' name='ssid' value='' /></label><br>"
-                     "    <label>Password<br><input type='password' name='password' value='' /></label><br>"
+                     "    <label>SSID<br><input type='text' name='ssid' value='%s' /></label><br>"
+                     "    <label>Password<br><input type='password' name='password' value='%s' /></label><br>"
                      "    <input class=\"btn\" type='submit' value='Submit WiFi Settings' />"
                      "   </form>"
                      "  </div>"
@@ -125,6 +126,16 @@ void handleNotFound(AsyncWebServerRequest *request) {
 }
 
 /**
+ * Builds the html string prefilled with the values that need to be prefilled.
+ */
+char* buildConfigPageHtml() {
+  char* buffer = (char*)malloc(snprintf(NULL, 0, config_html, led_marquee_text.c_str(), ssid.c_str(), password.c_str()) + 1);
+  sprintf(buffer, config_html, led_marquee_text.c_str(), ssid.c_str(), password.c_str());
+
+  return buffer;
+}
+
+/**
  * Function to handle the configuration page post requests
  * 
  * @param AsyncWebServerRequest *request
@@ -153,7 +164,8 @@ void handleConfigPostRequest(AsyncWebServerRequest *request) {
     restart_wifi = true;
   }
 
-  request->send(200, "text/html", config_html);
+  char* buffer = buildConfigPageHtml();
+  request->send(200, "text/html", buffer);
 }
 
 /**
@@ -167,7 +179,8 @@ void setupWebServerRouting() {
     "/",
     HTTP_GET,
     [](AsyncWebServerRequest *request){
-      request->send(200, "text/html", config_html);
+      char* buffer = buildConfigPageHtml();
+      request->send(200, "text/html", buffer);
     }
   );
   // Setup the root post handler
