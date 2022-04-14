@@ -25,6 +25,20 @@ bool restart_wifi        = false;
 bool auto_reconnect_wifi = false;
 bool handle_dns_requests = false;
 
+DNSServer dns_server;
+
+// WebServer https://github.com/me-no-dev/ESPAsyncWebServer
+AsyncWebServer server(80);
+
+// https://registry.platformio.org/libraries/majicdesigns/MD_MAX72XX
+// https://registry.platformio.org/libraries/majicdesigns/MD_Parola
+MD_Parola led_marquee = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
+
+// Make sure that we're only controlling and updating the led marquee in the loop() function,
+// so communicate through variables if the text needs to be updated.
+String led_marquee_text = "scrolling text";
+bool led_marquee_text_changed = true;
+
 char const* config_html = "<!DOCTYPE html>"
                           "<html>"
                           "<head>"
@@ -104,20 +118,6 @@ char const* config_html = "<!DOCTYPE html>"
                           " </div>"
                           "</body>"
                           "</html>";
-
-DNSServer dns_server;
-
-// WebServer https://github.com/me-no-dev/ESPAsyncWebServer
-AsyncWebServer server(80);
-
-// https://registry.platformio.org/libraries/majicdesigns/MD_MAX72XX
-// https://registry.platformio.org/libraries/majicdesigns/MD_Parola
-MD_Parola led_marquee = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
-
-// Make sure that we're only controlling and updating the led marquee in the loop() function,
-// so communicate through variables if the text needs to be updated.
-String led_marquee_text = "scrolling text";
-bool led_marquee_text_changed = true;
 
 /**
  * Function to handle any 404 response
