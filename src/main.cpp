@@ -4,6 +4,7 @@
 #include <MD_MAX72xx.h>
 #include <MD_Parola.h>
 #include <DNSServer.h>
+#include <ESPmDNS.h>
 
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW
 #define MAX_DEVICES 8
@@ -14,93 +15,95 @@ String ssid     = "";
 String password = "";
 
 IPAddress ap_ip(192, 168, 1, 1);
-const byte dns_port = 53;
+const byte dns_port     = 53;
 const char* ap_ssid     = "ESP32";
 const char* ap_password = "1234567890";
 
-bool restart_wifi = false;
+const char* mdns_name = "esp32";
+
+bool restart_wifi        = false;
 bool auto_reconnect_wifi = false;
 bool handle_dns_requests = false;
 
 char const* config_html = "<!DOCTYPE html>"
-                     "<html>"
-                     "<head>"
-                     " <style>"
-                     "  :root {"
-                     "    font-size:calc(16px + 0.2vw);"
-                     "  }"
-                     "  .main_content {"
-                     "    box-sizing: content-box;"
-                     "    margin-inline: auto;"
-                     "    max-inline-size: 40rem;"
-                     "    display: flex;"
-                     "    flex-direction: column;"
-                     "    justify-content: flex-start;"
-                     "  }"
-                     "  .main_content h1 {"
-                     "    font-size: 2rem;"
-                     "  }"
-                     "  .main_content h2 {"
-                     "    font-size: 1.75rem;"
-                     "  }"
-                     "  .main_content > * {"
-                     "    margin-block: 0;"
-                     "  }"
-                     "  .main_content > * + * {"
-                     "    margin-block-start: var(--space, 1.5rem);"
-                     "  }"
-                     "  .main_content_item input {"
-                     "    display: block;"
-                     "    padding: 0.25rem 0.5rem;"
-                     "    box-sizing: border-box;"
-                     "    width: 100%%;"
-                     "    height: 2rem;"
-                     "    font-size: 1rem;"
-                     "    vertical-align: middle;"
-                     "  }"
-                     "  .main_content_item input[type=text], .main_content_item input[type=password] {"
-                     "    border: none;"
-                     "    background: #f1f1f1;"
-                     "  }"
-                     "  .main_content_item input[type=text]:focus, .main_content_item input[type=password]:focus {"
-                     "    background-color: #ddd;"
-                     "    outline: none;"
-                     "  }"
-                     "  .main_content_item .btn {"
-                     "    background-color: #42ebeb;"
-                     "    color: white;"
-                     "    padding: 0.25rem 0.5rem;"
-                     "    border: none;"
-                     "    cursor: pointer;"
-                     "    width: 100%;"
-                     "    opacity: 0.9;"
-                     "  }"
-                     "  .btn:hover {"
-                     "    opacity: 1;"
-                     "  }"
-                     " </style>"
-                     "</head>"
-                     "<body>"
-                     " <div class=\"main_content\">"
-                     "  <h1>ESP32 Web Server</h1>"
-                     "  <div class=\"main_content_item\">"
-                     "   <h1>LED Matrix Settings</h1>"
-                     "   <form method='post' action='/'>"
-                     "    <label>LED Matrix Text<br><input type='text' name='data' value='%s' /></label><br>"
-                     "    <input class=\"btn\" type='submit' value='Submit LED Matrix Settings' />"
-                     "   </form>"
-                     "  </div>"
-                     "  <div class=\"main_content_item\">"
-                     "   <h1>WiFi Settings</h1>"
-                     "   <form method='post' action='/'>"
-                     "    <label>SSID<br><input type='text' name='ssid' value='%s' /></label><br>"
-                     "    <label>Password<br><input type='password' name='password' value='%s' /></label><br>"
-                     "    <input class=\"btn\" type='submit' value='Submit WiFi Settings' />"
-                     "   </form>"
-                     "  </div>"
-                     " </div>"
-                     "</body>"
-                     "</html>";
+                          "<html>"
+                          "<head>"
+                          " <style>"
+                          "  :root {"
+                          "    font-size:calc(16px + 0.2vw);"
+                          "  }"
+                          "  .main_content {"
+                          "    box-sizing: content-box;"
+                          "    margin-inline: auto;"
+                          "    max-inline-size: 40rem;"
+                          "    display: flex;"
+                          "    flex-direction: column;"
+                          "    justify-content: flex-start;"
+                          "  }"
+                          "  .main_content h1 {"
+                          "    font-size: 2rem;"
+                          "  }"
+                          "  .main_content h2 {"
+                          "    font-size: 1.75rem;"
+                          "  }"
+                          "  .main_content > * {"
+                          "    margin-block: 0;"
+                          "  }"
+                          "  .main_content > * + * {"
+                          "    margin-block-start: var(--space, 1.5rem);"
+                          "  }"
+                          "  .main_content_item input {"
+                          "    display: block;"
+                          "    padding: 0.25rem 0.5rem;"
+                          "    box-sizing: border-box;"
+                          "    width: 100%%;"
+                          "    height: 2rem;"
+                          "    font-size: 1rem;"
+                          "    vertical-align: middle;"
+                          "  }"
+                          "  .main_content_item input[type=text], .main_content_item input[type=password] {"
+                          "    border: none;"
+                          "    background: #f1f1f1;"
+                          "  }"
+                          "  .main_content_item input[type=text]:focus, .main_content_item input[type=password]:focus {"
+                          "    background-color: #ddd;"
+                          "    outline: none;"
+                          "  }"
+                          "  .main_content_item .btn {"
+                          "    background-color: #42ebeb;"
+                          "    color: white;"
+                          "    padding: 0.25rem 0.5rem;"
+                          "    border: none;"
+                          "    cursor: pointer;"
+                          "    width: 100%;"
+                          "    opacity: 0.9;"
+                          "  }"
+                          "  .btn:hover {"
+                          "    opacity: 1;"
+                          "  }"
+                          " </style>"
+                          "</head>"
+                          "<body>"
+                          " <div class=\"main_content\">"
+                          "  <h1>ESP32 Web Server</h1>"
+                          "  <div class=\"main_content_item\">"
+                          "   <h1>LED Matrix Settings</h1>"
+                          "   <form method='post' action='/'>"
+                          "    <label>LED Matrix Text<br><input type='text' name='data' value='%s' /></label><br>"
+                          "    <input class=\"btn\" type='submit' value='Submit LED Matrix Settings' />"
+                          "   </form>"
+                          "  </div>"
+                          "  <div class=\"main_content_item\">"
+                          "   <h1>WiFi Settings</h1>"
+                          "   <form method='post' action='/'>"
+                          "    <label>SSID<br><input type='text' name='ssid' value='%s' /></label><br>"
+                          "    <label>Password<br><input type='password' name='password' value='%s' /></label><br>"
+                          "    <input class=\"btn\" type='submit' value='Submit WiFi Settings' />"
+                          "   </form>"
+                          "  </div>"
+                          " </div>"
+                          "</body>"
+                          "</html>";
 
 DNSServer dns_server;
 
@@ -239,6 +242,8 @@ void setupWiFi() {
   handle_dns_requests = false;
   // Disconnect if connected, and stop the dns server
   dns_server.stop();
+  // Stop the mDNS service if it is running
+  MDNS.end();
   WiFi.disconnect(true, true);
   WiFi.softAPdisconnect(true);
   WiFi.mode(WIFI_OFF);
@@ -263,6 +268,13 @@ void setupWiFi() {
     handle_dns_requests = true;
 
     return;
+  }
+
+  Serial.print("Starting mDNS... ");
+  if(MDNS.begin(mdns_name)) {
+    Serial.print("success.\n");
+  } else {
+    Serial.print("failed.\n");
   }
 }
 
