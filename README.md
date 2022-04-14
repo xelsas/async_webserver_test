@@ -2,6 +2,10 @@
  Simple test creating a webserver using ESPAsyncWebServer (https://github.com/me-no-dev/ESPAsyncWebServer) to control a MAX7219 led matrix with eight 8x8 panels.
  
  Start with WiFi in access point mode with captive portal if no WiFi connection can be made. Once a connection has been made disable the DNS server and start mDNS, and if disconnected just keep trying to reconnect.
+ 
+ ToDo:
+ - Add a (physical) reset button to reset the WiFi settings
+ - Store WiFi settings and les matrix text in a struct in flash memory
 ```
 esp32   level convertor   5v   max7219
 --------------------------|-----------
