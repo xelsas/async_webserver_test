@@ -5,7 +5,6 @@
  
  ToDo:
  - Add a (physical) reset button to reset the WiFi settings
- - Store WiFi settings and les matrix text in a struct in flash memory
 ```
 esp32   level convertor   5v   max7219
 --------------------------|-----------
