@@ -6,7 +6,7 @@
  ToDo:
  - Add a (physical) reset button to reset the WiFi settings
 ```
-esp32   level convertor   5v   max7219
+ESP32   level convertor   5v   MAX7219
 --------------------------|-----------
  3v3----lv           hv---+----vcc
  gnd----gnd         gnd--------gnd
@@ -14,20 +14,12 @@ mosi----lv1         hv1--------din
   cs----lv2         hv2--------cs
  clk----lv3         hv3--------clk
 
-esp32:
+ESP32:
 mosi    = 23
 cs      = 05
 sck/clk = 18
 
+PCA9685 I2C connection
 sda     = 21
 scl     = 22
-```
-```
-esp32   
---------------------------|-----------
- 3v3----lv
- gnd----gnd
-mosi----lv1
-  cs----lv2
- clk----lv3
 ```
