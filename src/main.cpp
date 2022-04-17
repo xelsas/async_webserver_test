@@ -19,10 +19,14 @@
 // the 4096-part cycle to turn the PWM output ON and OFF.
 
 // Ticks start at 0, so 4095 is max.
-// The pulse length should go from 0.5ms to 2.15ms for a sg90
-// to go from 0 to 180 degrees (found experimentally).
-#define SERVO_MIN  102  // 0.5*4095/20
-#define SERVO_MAX  440  // 2.15*4095/20
+// By definition: 90 degrees is position 0, the middle.
+// This is a pulse length of 1.5ms, or a pulse length of 307
+
+// ~0.6ms is all the way to the left
+// ~2.4ms is all the way to the right
+// For the sg90:
+#define SERVO_MIN  132  // Found experimentally
+#define SERVO_MAX  482  // 307-132+307
 
 // The servo is connected to servo connector 0
 #define SERVO_CONNECTOR 0
