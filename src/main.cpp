@@ -20,7 +20,7 @@
 
 // Ticks start at 0, so 4095 is max.
 // By definition: 90 degrees is position 0, the middle.
-// This is a pulse length of 1.5ms, or a pulse length of 307
+// This is a pulse length of 1.5ms, or a pulse length of 307 ticks
 
 // ~0.6ms is all the way to the left
 // ~2.4ms is all the way to the right
