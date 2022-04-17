@@ -11,7 +11,7 @@
 #define MAX_DEVICES 8
 #define CS_PIN 5
 
-// pwm period is 20ms, so 50 Hz
+// PWM period is 20ms, so 50 Hz
 #define PWM_FREQ 50
 
 // PCA9685 is 12 bit, so it has 4096 ticks in a single period.
