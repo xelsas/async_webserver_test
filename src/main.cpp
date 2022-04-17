@@ -5,10 +5,27 @@
 #include <MD_Parola.h>
 #include <DNSServer.h>
 #include <ESPmDNS.h>
+#include <Adafruit_PWMServoDriver.h>
 
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW
 #define MAX_DEVICES 8
 #define CS_PIN 5
+
+// pwm period is 20ms, so 50 Hz
+#define PWM_FREQ 50
+
+// PCA9685 is 12 bit, so it has 4096 ticks in a single period.
+// You control the pulse width by specifying at what point in
+// the 4096-part cycle to turn the PWM output ON and OFF.
+
+// Ticks start at 0, so 4095 is max.
+// The pulse length should go from 0.5ms to 2.15ms for a sg90
+// to go from 0 to 180 degrees (found experimentally).
+#define SERVO_MIN  102  // 0.5*4095/20
+#define SERVO_MAX  440  // 2.15*4095/20
+
+// The servo is connected to servo connector 0
+#define SERVO_CONNECTOR 0
 
 // WiFi credentials
 String ssid     = "";
@@ -29,6 +46,9 @@ DNSServer dns_server;
 
 // WebServer https://github.com/me-no-dev/ESPAsyncWebServer
 AsyncWebServer server(80);
+
+// PCA9685 at default I2C address
+Adafruit_PWMServoDriver pca9685 = Adafruit_PWMServoDriver(0x40);
 
 // https://registry.platformio.org/libraries/majicdesigns/MD_MAX72XX
 // https://registry.platformio.org/libraries/majicdesigns/MD_Parola
@@ -301,6 +321,16 @@ void setup() {
   led_marquee.begin();
   led_marquee.setIntensity(0);
   led_marquee.displayClear();
+
+  // Setup PCA9685
+  pca9685.begin();
+
+  // Set PWM Frequency to 50Hz
+  pca9685.setPWMFreq(PWM_FREQ);
+
+  // Calculate PWM pulse width, and write to PCA9685
+  int pwm = map(0, 0, 180, SERVO_MIN, SERVO_MAX);
+  pca9685.setPWM(SERVO_CONNECTOR, 0, pwm);
 }
 
 /**
