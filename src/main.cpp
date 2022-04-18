@@ -182,7 +182,8 @@ char* buildConfigPageHtml() {
 }
 
 /**
- * Function to handle the configuration page post requests
+ * Function to handle the configuration page post requests. Should give error
+ * feedback to the user on invalid input, but doesn't.
  * 
  * @param AsyncWebServerRequest *request
  */
