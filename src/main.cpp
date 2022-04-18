@@ -11,21 +11,29 @@
 #define MAX_DEVICES 8
 #define CS_PIN 5
 
+// Servo control is done by pulse width modulation. The PCA9685
+// used for this. First set the frequency of the pulse. This is
+// written for an sg90, which expects a pulse every 20ms.
+
 // PWM period is 20ms, so 50 Hz
 #define PWM_FREQ 50
 
 // PCA9685 is 12 bit, so it has 4096 ticks in a single period.
 // You control the pulse width by specifying at what point in
 // the 4096-part cycle to turn the PWM output ON and OFF.
-
 // Ticks start at 0, so 4095 is max.
-// By definition: 90 degrees is position 0, the middle.
-// This is a pulse length of 1.5ms, or a pulse length of 307 ticks
 
+// Positional servos rotate 180 degrees.
+// By definition the neutral or the middle position of a servo is
+// always a pulse length of 1.5ms, or a pulse length of 307 ticks,
+// start here when calibrating the servo. From here, find the left
+// extreme by lowering the pulse length and the right extreme by
+// raising the pulse length.
+
+// For the sg90:
 // ~0.6ms is all the way to the left
 // ~2.4ms is all the way to the right
-// For the sg90:
-#define SERVO_MIN  132  // Found experimentally
+#define SERVO_MIN  132  // Found experimentally (this is approximately 0.645ms, this fits with the expectations)
 #define SERVO_MAX  482  // 307-132+307
 
 // The servo is connected to servo connector 0
