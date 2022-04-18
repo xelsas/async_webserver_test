@@ -39,6 +39,10 @@
 // The servo is connected to servo connector 0
 #define SERVO_CONNECTOR 0
 
+int servo_angle = 0;
+int current_servo_angle = 0;
+int pwm = SERVO_MIN;
+
 // WiFi credentials
 String ssid     = "";
 String password = "";
@@ -140,6 +144,13 @@ char const* config_html = "<!DOCTYPE html>"
                           "   </form>"
                           "  </div>"
                           "  <div class=\"main_content_item\">"
+                          "   <h1>Servo Settings</h1>"
+                          "   <form method='post' action='/'>"
+                          "    <label>Servo Angle<br><input type='numeric' name='servo_angle' value='%d' /></label><br>"
+                          "    <input class=\"btn\" type='submit' value='Submit Servo Settings' />"
+                          "   </form>"
+                          "  </div>"
+                          "  <div class=\"main_content_item\">"
                           "   <h1>WiFi Settings</h1>"
                           "   <form method='post' action='/'>"
                           "    <label>SSID<br><input type='text' name='ssid' value='%s' /></label><br>"
@@ -164,8 +175,8 @@ void handleNotFound(AsyncWebServerRequest *request) {
  * Builds the html string prefilled with the values that need to be prefilled.
  */
 char* buildConfigPageHtml() {
-  char* buffer = (char*)malloc(snprintf(NULL, 0, config_html, led_marquee_text.c_str(), ssid.c_str(), password.c_str()) + 1);
-  sprintf(buffer, config_html, led_marquee_text.c_str(), ssid.c_str(), password.c_str());
+  char* buffer = (char*)malloc(snprintf(NULL, 0, config_html, led_marquee_text.c_str(), servo_angle, ssid.c_str(), password.c_str()) + 1);
+  sprintf(buffer, config_html, led_marquee_text.c_str(), servo_angle, ssid.c_str(), password.c_str());
 
   return buffer;
 }
@@ -197,6 +208,29 @@ void handleConfigPostRequest(AsyncWebServerRequest *request) {
     password = p_password->value();
     
     restart_wifi = true;
+  }
+
+  // Set the servo angle if it is a number between 0 and 180
+  if (request->hasParam("servo_angle", true, false)) {
+    String servo_angle_string = request->getParam("servo_angle", true, false)->value();
+    bool is_numeric = servo_angle_string.length() > 0;
+
+    for(int i=0;i<servo_angle_string.length();i++) {
+      if(!isDigit(servo_angle_string.charAt(i))) {
+        is_numeric = false;
+        break;
+      }
+    }
+
+    if (is_numeric) {
+      int input_angle = servo_angle_string.toInt();
+
+      if (input_angle >= 0 && input_angle <= 180) {
+        servo_angle = input_angle;
+      }
+      
+    }
+    
   }
 
   char* buffer = buildConfigPageHtml();
@@ -340,8 +374,6 @@ void setup() {
   // Set PWM Frequency to 50Hz
   pca9685.setPWMFreq(PWM_FREQ);
 
-  // Calculate PWM pulse width, and write to PCA9685
-  int pwm = map(0, 0, 180, SERVO_MIN, SERVO_MAX);
   pca9685.setPWM(SERVO_CONNECTOR, 0, pwm);
 }
 
@@ -368,4 +400,12 @@ void loop() {
   if (led_marquee.displayAnimate()) {
     led_marquee.displayReset();
   }
+
+  if (current_servo_angle != servo_angle) {
+    // Calculate PWM pulse width, and write to PCA9685
+    pwm = map(servo_angle, 0, 180, SERVO_MIN, SERVO_MAX);
+    current_servo_angle = servo_angle;
+    pca9685.setPWM(SERVO_CONNECTOR, 0, pwm);
+  }
+  
 }
