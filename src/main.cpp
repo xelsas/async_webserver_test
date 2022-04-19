@@ -200,13 +200,12 @@ void handleConfigPostRequest(AsyncWebServerRequest *request) {
 
     Serial.printf("Received data: %s\n", p_data->value().c_str());
 
-    // Set the new text if it doesn't exceed the maximum length
-    if (p_data->value().length() < LED_MARQUEE_TEXT_LENGTH) {
-      strcpy(led_marquee_text, p_data->value().c_str());
-      
-      // Set the boolean marking that the text that needs to be displayed has changed to true
-      led_marquee_text_changed = true;
-    }
+    // Set the new text, but make sure it doesn't exceed the maximum size.
+    led_marquee_text[0] = '\0';
+    strncat(led_marquee_text, p_data->value().c_str(), LED_MARQUEE_TEXT_LENGTH - 1);
+    Serial.printf("Received data: %s\n", led_marquee_text);
+    // Set the boolean marking that the text that needs to be displayed has changed to true
+    led_marquee_text_changed = true;
   }
 
   if (request->hasParam("ssid", true, false) && request->hasParam("password", true, false)) {
