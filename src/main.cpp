@@ -7,6 +7,13 @@
 #include <ESPmDNS.h>
 #include <Adafruit_PWMServoDriver.h>
 
+// Define the maximum lengths of the led marquee text, and wifi credentials.
+// The 802.11 standard defines that the SSID by definition can not be more
+// than 32 characters, and the password can not be longer than 63 characters.
+#define LED_MARQUEE_TEXT_LENGTH 1024
+#define SSID_LENGTH 33
+#define PASSSWORD_LENGTH 64
+
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW
 #define MAX_DEVICES 8
 #define CS_PIN 5
@@ -44,8 +51,8 @@ int current_servo_angle = 0;
 int pwm = SERVO_MIN;
 
 // WiFi credentials
-String ssid     = "";
-String password = "";
+char ssid[SSID_LENGTH]     = "";
+char password[PASSSWORD_LENGTH] = "";
 
 IPAddress ap_ip(192, 168, 1, 1);
 const byte dns_port     = 53;
@@ -72,7 +79,7 @@ MD_Parola led_marquee = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 
 // Make sure that we're only controlling and updating the led marquee in the loop() function,
 // so communicate through variables if the text needs to be updated.
-String led_marquee_text = "scrolling text";
+char led_marquee_text[LED_MARQUEE_TEXT_LENGTH] = "scrolling text";
 bool led_marquee_text_changed = true;
 
 char const* config_html = "<!DOCTYPE html>"
@@ -175,8 +182,8 @@ void handleNotFound(AsyncWebServerRequest *request) {
  * Builds the html string prefilled with the values that need to be prefilled.
  */
 char* buildConfigPageHtml() {
-  char* buffer = (char*)malloc(snprintf(NULL, 0, config_html, led_marquee_text.c_str(), servo_angle, ssid.c_str(), password.c_str()) + 1);
-  sprintf(buffer, config_html, led_marquee_text.c_str(), servo_angle, ssid.c_str(), password.c_str());
+  char* buffer = (char*)malloc(snprintf(NULL, 0, config_html, led_marquee_text, servo_angle, ssid, password) + 1);
+  sprintf(buffer, config_html, led_marquee_text, servo_angle, ssid, password);
 
   return buffer;
 }
@@ -193,10 +200,13 @@ void handleConfigPostRequest(AsyncWebServerRequest *request) {
 
     Serial.printf("Received data: %s\n", p_data->value().c_str());
 
-    // Set the new text
-    led_marquee_text = p_data->value();
-    // Set the boolean marking that the text that needs to be displayed has changed to true
-    led_marquee_text_changed = true;
+    // Set the new text if it doesn't exceed the maximum length
+    if (p_data->value().length() < LED_MARQUEE_TEXT_LENGTH) {
+      strcpy(led_marquee_text, p_data->value().c_str());
+      
+      // Set the boolean marking that the text that needs to be displayed has changed to true
+      led_marquee_text_changed = true;
+    }
   }
 
   if (request->hasParam("ssid", true, false) && request->hasParam("password", true, false)) {
@@ -205,10 +215,12 @@ void handleConfigPostRequest(AsyncWebServerRequest *request) {
 
     Serial.printf("Received SSID: %s\n", p_ssid->value().c_str());
 
-    ssid     = p_ssid->value();
-    password = p_password->value();
-    
-    restart_wifi = true;
+    if (p_ssid->value().length() < SSID_LENGTH && p_password->value().length() < PASSSWORD_LENGTH) {
+      strcpy(ssid, p_ssid->value().c_str());
+      strcpy(password, p_password->value().c_str());
+
+      restart_wifi = true;
+    }
   }
 
   // Set the servo angle if it is a number between 0 and 180
@@ -228,10 +240,8 @@ void handleConfigPostRequest(AsyncWebServerRequest *request) {
 
       if (input_angle >= 0 && input_angle <= 180) {
         servo_angle = input_angle;
-      }
-      
+      } 
     }
-    
   }
 
   char* buffer = buildConfigPageHtml();
@@ -293,7 +303,7 @@ void handleEventStaDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
 
   if (auto_reconnect_wifi) {
     Serial.println("Attempting reconnect.");
-    WiFi.begin(ssid.c_str(), password.c_str());
+    WiFi.begin(ssid, password);
   } else {
     Serial.println("Reconnect not allowed.");
   }
@@ -315,9 +325,9 @@ void setupWiFi() {
   WiFi.softAPdisconnect(true);
   WiFi.mode(WIFI_OFF);
   
-  if (ssid.length()) {
+  if (strlen(ssid) > 0) {
     int count = 0;
-    WiFi.begin(ssid.c_str(), password.c_str());
+    WiFi.begin(ssid, password);
     Serial.println("Setting up WiFi");
     while (WiFi.status() != WL_CONNECTED && count < 20) { 
       delay(500);
@@ -395,7 +405,7 @@ void loop() {
   if (led_marquee_text_changed) {
     led_marquee_text_changed = false;
     led_marquee.displayClear();
-    led_marquee.displayText(led_marquee_text.c_str(), PA_CENTER, 100, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
+    led_marquee.displayText(led_marquee_text, PA_CENTER, 100, 0, PA_SCROLL_LEFT, PA_SCROLL_LEFT);
   }
 
   if (led_marquee.displayAnimate()) {
