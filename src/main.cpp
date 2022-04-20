@@ -51,17 +51,17 @@ int current_servo_angle = 0;
 int pwm = SERVO_MIN;
 
 // WiFi credentials
-char ssid[SSID_LENGTH]     = "";
+char ssid[SSID_LENGTH] = "";
 char password[PASSSWORD_LENGTH] = "";
 
 IPAddress ap_ip(192, 168, 1, 1);
-const byte dns_port     = 53;
-const char* ap_ssid     = "ESP32";
+const byte dns_port = 53;
+const char* ap_ssid = "ESP32";
 const char* ap_password = "1234567890";
 
 const char* mdns_name = "esp32";
 
-bool restart_wifi        = false;
+bool restart_wifi = false;
 bool auto_reconnect_wifi = false;
 bool handle_dns_requests = false;
 
