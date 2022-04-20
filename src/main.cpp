@@ -189,59 +189,97 @@ char* buildConfigPageHtml() {
 }
 
 /**
+ * Handle the post request to set the new text on the led marquee, if set.
+ * 
+ * @param AsyncWebServerRequest *request
+ */
+void handleLedMarqueeConfigPostRequest(AsyncWebServerRequest *request) {
+  if (!request->hasParam("data", true, false)) {
+    return;
+  }
+
+  AsyncWebParameter* p_data = request->getParam("data", true, false);
+
+  // Set the new text, but make sure it doesn't exceed the maximum size.
+  led_marquee_text[0] = '\0';
+  strncat(led_marquee_text, p_data->value().c_str(), LED_MARQUEE_TEXT_LENGTH - 1);
+  // Set the boolean marking that the text that needs to be displayed has changed to true
+  led_marquee_text_changed = true;
+
+  Serial.printf("Received data: %s\n", led_marquee_text);
+}
+
+/**
+ * Handle the post request to set the new WiFi credentials, if set.
+ * 
+ * @param AsyncWebServerRequest *request
+ */
+void handleWifiCredentialsConfigPostRequest(AsyncWebServerRequest *request) {
+  if (!request->hasParam("ssid", true, false) || !request->hasParam("password", true, false)) {
+    return;
+  }
+
+  AsyncWebParameter* p_ssid = request->getParam("ssid", true, false);
+  AsyncWebParameter* p_password = request->getParam("password", true, false);
+
+  Serial.printf("Received SSID: %s\n", p_ssid->value().c_str());
+
+  if (p_ssid->value().length() < SSID_LENGTH && p_password->value().length() < PASSSWORD_LENGTH) {
+    strcpy(ssid, p_ssid->value().c_str());
+    strcpy(password, p_password->value().c_str());
+
+    restart_wifi = true;
+  }
+}
+
+/**
+ * Handle the post request to set the new servo angle credentials, if set.
+ * 
+ * @param AsyncWebServerRequest *request
+ */
+void handleServoConfigPostRequest(AsyncWebServerRequest *request) {
+  if (!request->hasParam("servo_angle", true, false)) {
+    return;
+  }
+
+  // Set the servo angle if it is a number between 0 and 180
+  String servo_angle_string = request->getParam("servo_angle", true, false)->value();
+  bool is_numeric = servo_angle_string.length() > 0;
+
+  for(int i=0;i<servo_angle_string.length();i++) {
+    if(!isDigit(servo_angle_string.charAt(i))) {
+      is_numeric = false;
+      break;
+    }
+  }
+
+  // If the input is not numeric, don't set the angle.
+  if (!is_numeric) {
+    return;
+  }
+
+  int input_angle = servo_angle_string.toInt();
+
+  // If the input is not in the range 0 to 180, don't set the angle.
+  if (input_angle < 0 || input_angle > 180) {
+    return;
+  }
+
+  servo_angle = input_angle;
+}
+
+/**
  * Function to handle the configuration page post requests. Should give error
  * feedback to the user on invalid input, but doesn't.
  * 
  * @param AsyncWebServerRequest *request
  */
 void handleConfigPostRequest(AsyncWebServerRequest *request) {
-  if (request->hasParam("data", true, false)) {
-    AsyncWebParameter* p_data = request->getParam("data", true, false);
+  handleLedMarqueeConfigPostRequest(request);
 
-    Serial.printf("Received data: %s\n", p_data->value().c_str());
+  handleWifiCredentialsConfigPostRequest(request);
 
-    // Set the new text, but make sure it doesn't exceed the maximum size.
-    led_marquee_text[0] = '\0';
-    strncat(led_marquee_text, p_data->value().c_str(), LED_MARQUEE_TEXT_LENGTH - 1);
-    Serial.printf("Received data: %s\n", led_marquee_text);
-    // Set the boolean marking that the text that needs to be displayed has changed to true
-    led_marquee_text_changed = true;
-  }
-
-  if (request->hasParam("ssid", true, false) && request->hasParam("password", true, false)) {
-    AsyncWebParameter* p_ssid = request->getParam("ssid", true, false);
-    AsyncWebParameter* p_password = request->getParam("password", true, false);
-
-    Serial.printf("Received SSID: %s\n", p_ssid->value().c_str());
-
-    if (p_ssid->value().length() < SSID_LENGTH && p_password->value().length() < PASSSWORD_LENGTH) {
-      strcpy(ssid, p_ssid->value().c_str());
-      strcpy(password, p_password->value().c_str());
-
-      restart_wifi = true;
-    }
-  }
-
-  // Set the servo angle if it is a number between 0 and 180
-  if (request->hasParam("servo_angle", true, false)) {
-    String servo_angle_string = request->getParam("servo_angle", true, false)->value();
-    bool is_numeric = servo_angle_string.length() > 0;
-
-    for(int i=0;i<servo_angle_string.length();i++) {
-      if(!isDigit(servo_angle_string.charAt(i))) {
-        is_numeric = false;
-        break;
-      }
-    }
-
-    if (is_numeric) {
-      int input_angle = servo_angle_string.toInt();
-
-      if (input_angle >= 0 && input_angle <= 180) {
-        servo_angle = input_angle;
-      } 
-    }
-  }
+  handleServoConfigPostRequest(request);
 
   char* buffer = buildConfigPageHtml();
   request->send(200, "text/html", buffer);
