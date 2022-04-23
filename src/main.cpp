@@ -335,7 +335,7 @@ void handleEventStaGotIp(WiFiEvent_t event, WiFiEventInfo_t info){
  */
 void handleEventStaDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
   Serial.print("WiFi connection lost: ");
-  Serial.print(info.disconnected.reason);
+  Serial.print(info.wifi_sta_disconnected.reason);
   Serial.print('\n');
 
   if (auto_reconnect_wifi) {
@@ -401,9 +401,9 @@ void setup() {
   Serial.println('\n');
 
   // Register WiFi events
-  WiFi.onEvent(handleEventStaConnected, SYSTEM_EVENT_STA_CONNECTED);
-  WiFi.onEvent(handleEventStaGotIp, SYSTEM_EVENT_STA_GOT_IP);
-  WiFi.onEvent(handleEventStaDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
+  WiFi.onEvent(handleEventStaConnected, ARDUINO_EVENT_WIFI_STA_CONNECTED);
+  WiFi.onEvent(handleEventStaGotIp, ARDUINO_EVENT_WIFI_STA_GOT_IP);
+  WiFi.onEvent(handleEventStaDisconnected, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
   setupWiFi();
 
   setupWebServerRouting();
