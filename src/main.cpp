@@ -46,6 +46,10 @@
 // The servo is connected to servo connector 0
 #define SERVO_CONNECTOR 0
 
+// I2C pins
+#define I2C_SDA 21
+#define I2C_SCK 22
+
 int servo_angle = 0;
 int current_servo_angle = 0;
 int pwm = SERVO_MIN;
@@ -71,6 +75,7 @@ DNSServer dns_server;
 AsyncWebServer server(80);
 
 // PCA9685 at default I2C address
+TwoWire wire = TwoWire(0);
 Adafruit_PWMServoDriver pca9685 = Adafruit_PWMServoDriver(0x40);
 
 // https://registry.platformio.org/libraries/majicdesigns/MD_MAX72XX
@@ -415,6 +420,9 @@ void setup() {
   led_marquee.begin();
   led_marquee.setIntensity(0);
   led_marquee.displayClear();
+
+  // Setup I2C
+  wire.begin(I2C_SDA, I2C_SCK);
 
   // Setup PCA9685
   pca9685.begin();
