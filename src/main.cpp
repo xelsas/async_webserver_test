@@ -5,7 +5,6 @@
 #include <MD_Parola.h>
 #include <DNSServer.h>
 #include <ESPmDNS.h>
-#include <Adafruit_PWMServoDriver.h>
 
 // Define the maximum lengths of the led marquee text, and wifi credentials.
 // The 802.11 standard defines that the SSID by definition can not be more
@@ -18,12 +17,12 @@
 #define MAX_DEVICES 8
 #define CS_PIN 5
 
-// Servo control is done by pulse width modulation. The PCA9685
-// used for this. First set the frequency of the pulse. This is
-// written for an sg90, which expects a pulse every 20ms.
-
+// Define the channel, pin and bit resolution for the PWM for the server
+#define SERVO_CHANNEL 0
+#define SERVO_PIN 33
+#define SERVO_PWM_BIT 12
 // PWM period is 20ms, so 50 Hz
-#define PWM_FREQ 50
+#define SERVO_PWM_FREQ 50
 
 // PCA9685 is 12 bit, so it has 4096 ticks in a single period.
 // You control the pulse width by specifying at what point in
@@ -73,10 +72,6 @@ DNSServer dns_server;
 
 // WebServer https://github.com/me-no-dev/ESPAsyncWebServer
 AsyncWebServer server(80);
-
-// PCA9685 at default I2C address
-TwoWire wire = TwoWire(0);
-Adafruit_PWMServoDriver pca9685 = Adafruit_PWMServoDriver(0x40);
 
 // https://registry.platformio.org/libraries/majicdesigns/MD_MAX72XX
 // https://registry.platformio.org/libraries/majicdesigns/MD_Parola
@@ -421,16 +416,11 @@ void setup() {
   led_marquee.setIntensity(0);
   led_marquee.displayClear();
 
-  // Setup I2C
-  wire.begin(I2C_SDA, I2C_SCK);
-
-  // Setup PCA9685
-  pca9685.begin();
-
-  // Set PWM Frequency to 50Hz
-  pca9685.setPWMFreq(PWM_FREQ);
-
-  pca9685.setPWM(SERVO_CONNECTOR, 0, pwm);
+  // Setup the servo
+  pinMode(SERVO_PIN, OUTPUT);
+  ledcSetup(SERVO_CHANNEL, SERVO_PWM_FREQ, SERVO_PWM_BIT);
+  ledcAttachPin(SERVO_PIN, SERVO_CHANNEL);
+  ledcWrite(SERVO_CHANNEL, SERVO_MIN);
 }
 
 /**
@@ -461,7 +451,7 @@ void loop() {
     // Calculate PWM pulse width, and write to PCA9685
     pwm = map(servo_angle, 0, 180, SERVO_MIN, SERVO_MAX);
     current_servo_angle = servo_angle;
-    pca9685.setPWM(SERVO_CONNECTOR, 0, pwm);
+    ledcWrite(SERVO_CHANNEL, pwm);
   }
   
 }
