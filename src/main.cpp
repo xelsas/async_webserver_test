@@ -17,14 +17,14 @@
 #define MAX_DEVICES 8
 #define CS_PIN 5
 
-// Define the channel, pin and bit resolution for the PWM for the server
+// Define the channel, pin and bit resolution for the PWM for the servo
 #define SERVO_CHANNEL 0
 #define SERVO_PIN 19
 #define SERVO_PWM_BIT 12
 // PWM period is 20ms, so 50 Hz
 #define SERVO_PWM_FREQ 50
 
-// PCA9685 is 12 bit, so it has 4096 ticks in a single period.
+// The resolution is 12 bit, so it has 4096 ticks in a single period.
 // You control the pulse width by specifying at what point in
 // the 4096-part cycle to turn the PWM output ON and OFF.
 // Ticks start at 0, so 4095 is max.
