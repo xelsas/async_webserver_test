@@ -19,7 +19,7 @@
 
 // Define the channel, pin and bit resolution for the PWM for the server
 #define SERVO_CHANNEL 0
-#define SERVO_PIN 33
+#define SERVO_PIN 19
 #define SERVO_PWM_BIT 12
 // PWM period is 20ms, so 50 Hz
 #define SERVO_PWM_FREQ 50
