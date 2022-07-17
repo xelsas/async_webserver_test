@@ -17,42 +17,6 @@
 #define MAX_DEVICES 8
 #define CS_PIN 5
 
-// Define the channel, pin and bit resolution for the PWM for the servo
-#define SERVO_CHANNEL 0
-#define SERVO_PIN 19
-#define SERVO_PWM_BIT 12
-// PWM period is 20ms, so 50 Hz
-#define SERVO_PWM_FREQ 50
-
-// The resolution is 12 bit, so it has 4096 ticks in a single period.
-// You control the pulse width by specifying at what point in
-// the 4096-part cycle to turn the PWM output ON and OFF.
-// Ticks start at 0, so 4095 is max.
-
-// Positional servos rotate 180 degrees.
-// By definition the neutral or the middle position of a servo is
-// always a pulse length of 1.5ms, or a pulse length of 307 ticks,
-// start here when calibrating the servo. From here, find the left
-// extreme by lowering the pulse length and the right extreme by
-// raising the pulse length.
-
-// For the sg90:
-// ~0.6ms is all the way to the left
-// ~2.4ms is all the way to the right
-#define SERVO_MIN  132  // Found experimentally (this is approximately 0.645ms, this fits with the expectations)
-#define SERVO_MAX  482  // 307-132+307
-
-// The servo is connected to servo connector 0
-#define SERVO_CONNECTOR 0
-
-// I2C pins
-#define I2C_SDA 21
-#define I2C_SCK 22
-
-int servo_angle = 0;
-int current_servo_angle = 0;
-int pwm = SERVO_MIN;
-
 // WiFi credentials
 char ssid[SSID_LENGTH] = "";
 char password[PASSSWORD_LENGTH] = "";
@@ -151,13 +115,6 @@ char const* config_html = "<!DOCTYPE html>"
                           "   </form>"
                           "  </div>"
                           "  <div class=\"main_content_item\">"
-                          "   <h1>Servo Settings</h1>"
-                          "   <form method='post' action='/'>"
-                          "    <label>Servo Angle<br><input type='numeric' name='servo_angle' value='%d' /></label><br>"
-                          "    <input class=\"btn\" type='submit' value='Submit Servo Settings' />"
-                          "   </form>"
-                          "  </div>"
-                          "  <div class=\"main_content_item\">"
                           "   <h1>WiFi Settings</h1>"
                           "   <form method='post' action='/'>"
                           "    <label>SSID<br><input type='text' name='ssid' value='%s' /></label><br>"
@@ -182,8 +139,8 @@ void handleNotFound(AsyncWebServerRequest *request) {
  * Builds the html string prefilled with the values that need to be prefilled.
  */
 char* buildConfigPageHtml() {
-  char* buffer = (char*)malloc(snprintf(NULL, 0, config_html, led_marquee_text, servo_angle, ssid, password) + 1);
-  sprintf(buffer, config_html, led_marquee_text, servo_angle, ssid, password);
+  char* buffer = (char*)malloc(snprintf(NULL, 0, config_html, led_marquee_text, ssid, password) + 1);
+  sprintf(buffer, config_html, led_marquee_text, ssid, password);
 
   return buffer;
 }
@@ -233,42 +190,6 @@ void handleWifiCredentialsConfigPostRequest(AsyncWebServerRequest *request) {
 }
 
 /**
- * Handle the post request to set the new servo angle credentials, if set.
- * 
- * @param AsyncWebServerRequest *request
- */
-void handleServoConfigPostRequest(AsyncWebServerRequest *request) {
-  if (!request->hasParam("servo_angle", true, false)) {
-    return;
-  }
-
-  // Set the servo angle if it is a number between 0 and 180
-  String servo_angle_string = request->getParam("servo_angle", true, false)->value();
-  bool is_numeric = servo_angle_string.length() > 0;
-
-  for(int i=0;i<servo_angle_string.length();i++) {
-    if(!isDigit(servo_angle_string.charAt(i))) {
-      is_numeric = false;
-      break;
-    }
-  }
-
-  // If the input is not numeric, don't set the angle.
-  if (!is_numeric) {
-    return;
-  }
-
-  int input_angle = servo_angle_string.toInt();
-
-  // If the input is not in the range 0 to 180, don't set the angle.
-  if (input_angle < 0 || input_angle > 180) {
-    return;
-  }
-
-  servo_angle = input_angle;
-}
-
-/**
  * Function to handle the configuration page post requests. Should give error
  * feedback to the user on invalid input, but doesn't.
  * 
@@ -278,8 +199,6 @@ void handleConfigPostRequest(AsyncWebServerRequest *request) {
   handleLedMarqueeConfigPostRequest(request);
 
   handleWifiCredentialsConfigPostRequest(request);
-
-  handleServoConfigPostRequest(request);
 
   char* buffer = buildConfigPageHtml();
   request->send(200, "text/html", buffer);
@@ -415,12 +334,6 @@ void setup() {
   led_marquee.begin();
   led_marquee.setIntensity(0);
   led_marquee.displayClear();
-
-  // Setup the servo
-  pinMode(SERVO_PIN, OUTPUT);
-  ledcSetup(SERVO_CHANNEL, SERVO_PWM_FREQ, SERVO_PWM_BIT);
-  ledcAttachPin(SERVO_PIN, SERVO_CHANNEL);
-  ledcWrite(SERVO_CHANNEL, SERVO_MIN);
 }
 
 /**
@@ -446,12 +359,4 @@ void loop() {
   if (led_marquee.displayAnimate()) {
     led_marquee.displayReset();
   }
-
-  if (current_servo_angle != servo_angle) {
-    // Calculate PWM pulse width, and write to PCA9685
-    pwm = map(servo_angle, 0, 180, SERVO_MIN, SERVO_MAX);
-    current_servo_angle = servo_angle;
-    ledcWrite(SERVO_CHANNEL, pwm);
-  }
-  
 }
