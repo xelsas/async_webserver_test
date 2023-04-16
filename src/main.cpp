@@ -17,6 +17,11 @@
 #define MAX_DEVICES 8
 #define CS_PIN 5
 
+// GIOP21 pin connected to wifi reset button
+#define BUTTON_PIN 21
+int lastState = HIGH;
+int currentState;
+
 // WiFi credentials
 char ssid[SSID_LENGTH] = "";
 char password[PASSSWORD_LENGTH] = "";
@@ -319,6 +324,8 @@ void setup() {
   delay(10);
   Serial.println('\n');
 
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
   // Register WiFi events
   WiFi.onEvent(handleEventStaConnected, ARDUINO_EVENT_WIFI_STA_CONNECTED);
   WiFi.onEvent(handleEventStaGotIp, ARDUINO_EVENT_WIFI_STA_GOT_IP);
@@ -340,6 +347,15 @@ void setup() {
  * The main loop handles updating the led matrix, and changes the text when needed.
  */
 void loop() {
+  // Reset WiFi if we're going from low to high
+  currentState = digitalRead(BUTTON_PIN);
+  if(lastState == LOW && currentState == HIGH) {
+    restart_wifi = true;
+    strcpy(ssid, "");
+    strcpy(password, "");
+  }
+  lastState = currentState;
+
   if (handle_dns_requests) {
     dns_server.processNextRequest();
   }
