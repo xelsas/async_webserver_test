@@ -5,6 +5,7 @@
 #include <MD_Parola.h>
 #include <DNSServer.h>
 #include <ESPmDNS.h>
+#include <Preferences.h>
 
 // Define the maximum lengths of the led marquee text, and wifi credentials.
 // The 802.11 standard defines that the SSID by definition can not be more
@@ -22,13 +23,17 @@
 int lastState = HIGH;
 int currentState;
 
+Preferences preferences;
+
 // WiFi credentials
 char ssid[SSID_LENGTH] = "";
 char password[PASSSWORD_LENGTH] = "";
 
 IPAddress ap_ip(192, 168, 1, 1);
 const byte dns_port = 53;
+// Max 32 characters
 const char* ap_ssid = "ESP32";
+// Max 63 characters
 const char* ap_password = "1234567890";
 
 const char* mdns_name = "esp32";
@@ -190,6 +195,12 @@ void handleWifiCredentialsConfigPostRequest(AsyncWebServerRequest *request) {
     strcpy(ssid, p_ssid->value().c_str());
     strcpy(password, p_password->value().c_str());
 
+    preferences.begin("app.settings", false);
+    preferences.putString("ssid", ssid);
+    preferences.putString("password", password);
+    preferences.end();
+
+
     restart_wifi = true;
   }
 }
@@ -274,6 +285,20 @@ void handleEventStaDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
  * Handle WiFi setup, try to connect and fall back to starting as access point.
  */
 void setupWiFi() {
+  preferences.begin("app.settings", false);
+  String s_ssid = preferences.getString("ssid", "");
+  String s_password = preferences.getString("password", "");
+  preferences.end();
+
+  if (s_ssid.length() < SSID_LENGTH && s_password.length() < PASSSWORD_LENGTH) {
+    strcpy(ssid, s_ssid.c_str());
+    strcpy(password, s_password.c_str());
+  }
+
+  if (ssid == "" || password == ""){
+    Serial.println("No values saved for ssid or password");
+  }
+
   // Prevent automatic reconnection
   auto_reconnect_wifi = false;
   // Stop DNS requests from being handled
@@ -350,6 +375,9 @@ void loop() {
   // Reset WiFi if we're going from low to high
   currentState = digitalRead(BUTTON_PIN);
   if(lastState == LOW && currentState == HIGH) {
+    preferences.begin("app.settings", false);
+    preferences.clear();
+    preferences.end();
     restart_wifi = true;
     strcpy(ssid, "");
     strcpy(password, "");
